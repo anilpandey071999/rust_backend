@@ -4,7 +4,7 @@ use actix_web::web::Data;
 use actix_web::{
     get, patch, post,
     web::{Json, Path},
-    App, HttpResponse, HttpServer, Responder,
+    App, HttpServer,
 };
 use db::database::Database;
 use validator::Validate;
@@ -47,11 +47,20 @@ async fn buy_pizza(body: Json<BuyPizzaRequest>, db: Data<Database>) -> Result<Js
 }
 
 #[patch("/updatepizza/{uuid}")]
-async fn updatepizza(update_pizza_url: Path<UpdatePizzaURL>) -> impl Responder {
+async fn updatepizza(update_pizza_url: Path<UpdatePizzaURL>,body: Json<BuyPizzaRequest>, db: Data<Database>) -> Result<Json<Pizza>, PizzaError> {
     let uuid = update_pizza_url.into_inner().uuid;
-    // let get_pizza_by_uuid = db.get
-
-    HttpResponse::Ok().body(format!("Updating a Pizza with {uuid}"))
+    let is_valid = body.validate();
+    match is_valid {
+        Ok(_) => {
+            let pizza_name = body.pizza_name.clone();
+            let update_result = db.update_pizza(uuid, pizza_name).await;
+            match update_result {
+                Some(update_pizza)=> Ok(Json(update_pizza)),
+                None => Err(PizzaError::NoSuchPizzaFound),
+            }
+        },
+        Err(_) => Err(PizzaError::NoSuchPizzaFound),
+    }    
 }
 
 #[actix_web::main]
