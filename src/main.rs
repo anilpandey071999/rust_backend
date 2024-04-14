@@ -23,7 +23,7 @@ async fn get_pizzas(db: Data<Database>) -> Result<Json<Vec<Pizza>>, PizzaError> 
 }
 
 #[post("/buypizza")]
-async fn buy_pizza(body: Json<BuyPizzaRequest>, db: Data<Database>) -> impl Responder {
+async fn buy_pizza(body: Json<BuyPizzaRequest>, db: Data<Database>) -> Result<Json<Pizza>,PizzaError> {
     let is_valid = body.validate();
     match is_valid {
         Ok(_) => {
@@ -37,18 +37,20 @@ async fn buy_pizza(body: Json<BuyPizzaRequest>, db: Data<Database>) -> impl Resp
 
             match new_pizza {
                 Some(created) => {
-                    HttpResponse::Ok().body(format!("created new pizza {:?}", created))
+                    Ok(Json(created))
                 },
-                None => HttpResponse::Ok().body("Pizza name required!"),
+                None => Err(PizzaError::PizzaCreationFailure),
             }
         }
-        Err(_) => HttpResponse::Ok().body("Pizza name required!"),
+        Err(_) => Err(PizzaError::PizzaCreationFailure),
     }
 }
 
 #[patch("/updatepizza/{uuid}")]
 async fn updatepizza(update_pizza_url: Path<UpdatePizzaURL>) -> impl Responder {
     let uuid = update_pizza_url.into_inner().uuid;
+    // let get_pizza_by_uuid = db.get
+
     HttpResponse::Ok().body(format!("Updating a Pizza with {uuid}"))
 }
 
